@@ -15,17 +15,25 @@ jobs:
         working-directory: my-flutter-app
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: stable
+          channel: stable
 
-      - run: flutter pub get
+      - name: Flutter version
+        run: flutter --version
 
-      - run: flutter build apk --release
+      - name: Install dependencies
+        run: flutter pub get
 
-      - uses: actions/upload-artifact@v4
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: app-release
           path: my-flutter-app/build/app/outputs/flutter-apk/app-release.apk

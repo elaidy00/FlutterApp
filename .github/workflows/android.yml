@@ -2,8 +2,7 @@ name: Build Flutter APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -15,14 +14,14 @@ jobs:
         working-directory: my-flutter-app
 
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: 17
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

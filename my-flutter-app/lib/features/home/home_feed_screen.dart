@@ -24,7 +24,8 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final courses = ref.watch(courseProvider);
-    final roleLabel = authState.selectedRole == AppUserRole.instructor ? 'Instructor' : 'Student';
+    final selectedRole = authState.selectedRole ?? authState.user?.role;
+    final roleLabel = selectedRole == AppUserRole.instructor ? 'Instructor' : 'Student';
 
     return ListView(
       padding: const EdgeInsets.all(16),

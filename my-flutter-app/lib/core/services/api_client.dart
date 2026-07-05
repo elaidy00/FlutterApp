@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const String kApiBaseUrl = 'https://learnloopapi.runasp.net/api';
+
+String _resolveBaseUrl() => kApiBaseUrl;
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -60,19 +61,6 @@ class ApiClient {
   bool _isRefreshing = false;
   final List<Map<String, dynamic>> _failedRequestsQueue =
       <Map<String, dynamic>>[];
-
-  static String _resolveBaseUrl() {
-    if (kIsWeb) {
-      return kApiBaseUrl;
-    }
-    if (Platform.isAndroid) {
-      return kApiBaseUrl;
-    }
-    if (Platform.isIOS) {
-      return kApiBaseUrl;
-    }
-    return kApiBaseUrl;
-  }
 
   ApiClient._internal() {
     dio.options.baseUrl = baseUrl;

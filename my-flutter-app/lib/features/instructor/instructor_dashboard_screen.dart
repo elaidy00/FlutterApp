@@ -1,55 +1,87 @@
 import 'package:flutter/material.dart';
+import '../../core/services/api_client.dart';
 
-class InstructorDashboardScreen extends StatelessWidget {
+class InstructorDashboardScreen extends StatefulWidget {
   const InstructorDashboardScreen({super.key});
+
+  @override
+  State<InstructorDashboardScreen> createState() => _InstructorDashboardScreenState();
+}
+
+class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
+  late final Future<Map<String, dynamic>> _dashboardFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardFuture = _loadDashboard();
+  }
+
+  Future<Map<String, dynamic>> _loadDashboard() async {
+    final response = await ApiClient().dio.get('/instructors/me/dashboard');
+    final payload = response.data is Map<String, dynamic>
+        ? response.data as Map<String, dynamic>
+        : Map<String, dynamic>.from(response.data ?? {});
+    final data = payload['data'];
+    return data is Map<String, dynamic>
+        ? data
+        : <String, dynamic>{};
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final courses = [
-      ('Design Systems', '24 learners enrolled', Icons.palette_outlined),
-      ('Product Leadership', '12 live sessions scheduled', Icons.groups_outlined),
-      ('Flutter Masterclass', '48 students active', Icons.code_outlined),
-    ];
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text('Instructor dashboard', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        Text('Monitor your courses and learner engagement from one place.', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: MediaQuery.of(context).size.width > 800 ? 2 : 1,
-          shrinkWrap: true,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 2.3,
-          physics: const NeverScrollableScrollPhysics(),
-          children: const [
-            _MetricCard(title: 'Live learners', value: '86', icon: Icons.groups_outlined),
-            _MetricCard(title: 'Revenue', value: '240 coins', icon: Icons.monetization_on_outlined),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Row(
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _dashboardFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(snapshot.error.toString()),
+            ),
+          );
+        }
+
+        final data = snapshot.data ?? <String, dynamic>{};
+        final firstName = data['firstName']?.toString() ?? 'Instructor';
+        final lastName = data['lastName']?.toString() ?? '';
+        final totalCourses = data['totalCourses']?.toString() ?? '0';
+        final totalStudents = data['totalStudents']?.toString() ?? '0';
+        final totalPublicSessions = data['totalPublicSessions']?.toString() ?? '0';
+        final totalPrivateSessions = data['totalPrivateSessions']?.toString() ?? '0';
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            Text('Active courses', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-            const Spacer(),
-            FilledButton.tonal(onPressed: () {}, child: const Text('View all')),
+            Text('Instructor dashboard', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text('Track your teaching activity from the main platform.', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 16),
+            GridView.count(
+              crossAxisCount: MediaQuery.of(context).size.width > 800 ? 2 : 1,
+              shrinkWrap: true,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 2.3,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _MetricCard(title: 'Courses', value: totalCourses, icon: Icons.school_outlined),
+                _MetricCard(title: 'Students', value: totalStudents, icon: Icons.groups_outlined),
+                _MetricCard(title: 'Public sessions', value: totalPublicSessions, icon: Icons.event_outlined),
+                _MetricCard(title: 'Private sessions', value: totalPrivateSessions, icon: Icons.lock_clock_outlined),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text('Welcome $firstName $lastName', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           ],
-        ),
-        const SizedBox(height: 12),
-        ...courses.map((entry) => Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                leading: CircleAvatar(child: Icon(entry.$3)),
-                title: Text(entry.$1),
-                subtitle: Text(entry.$2),
-                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-              ),
-            )),
-      ],
+        );
+      },
     );
   }
 }

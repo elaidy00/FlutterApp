@@ -18,7 +18,7 @@ Map<String, Object> buildRegisterRequest({
   required String userName,
   required String phoneNumber,
   required String password,
-  required int roleName,
+  required Object roleName,
 }) {
   return <String, Object>{
     'firstName': firstName,
@@ -126,7 +126,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final roles = authData['roles'] is List
           ? authData['roles'].cast<String>()
           : <String>[];
-      final role = roles.contains('Instructor')
+      final role = roles.contains('Instructor') || roles.contains('Instructor')
           ? AppUserRole.instructor
           : AppUserRole.student;
 
@@ -145,7 +145,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           email: authData['email']?.toString() ?? email,
           role: role,
         ),
-        selectedRole: null,
+        selectedRole: roles.length > 1 ? null : role,
         hasMultipleAssignableRoles: roles.length > 1,
       );
     } catch (error, stackTrace) {
@@ -174,7 +174,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           userName: email.split('@').first,
           phoneNumber: '',
           password: password,
-          roleName: 3,
+          roleName: 'Student',
         ),
       );
 

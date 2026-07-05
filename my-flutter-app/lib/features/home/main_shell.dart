@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/models/app_user.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/theme_provider.dart';
 import 'home_feed_screen.dart';
-import '../instructor/instructor_dashboard_screen.dart';
 import '../profile/profile_screen.dart';
-import '../student/student_dashboard_screen.dart';
+import '../wallet/wallet_screen.dart';
+import '../bookings/bookings_screen.dart';
+import '../community/community_screen.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -21,15 +21,13 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedRole = ref.watch(authProvider).selectedRole;
-    final currentRole = selectedRole ?? AppUserRole.student;
     final isDark = ref.watch(themeModeProvider);
 
     final pages = <Widget>[
       const HomeFeedScreen(),
-      currentRole == AppUserRole.instructor
-          ? const InstructorDashboardScreen()
-          : const StudentDashboardScreen(),
+      const BookingsScreen(),
+      const CommunityScreen(),
+      const WalletScreen(),
       const ProfileScreen(),
     ];
 
@@ -44,8 +42,8 @@ class _MainShellState extends ConsumerState<MainShell> {
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             onPressed: () {
-              ref.read(authProvider.notifier).signOut();
-              context.go('/');
+              ref.read(authProvider.notifier).logout();
+              context.go('/login');
             },
           ),
         ],
@@ -56,7 +54,9 @@ class _MainShellState extends ConsumerState<MainShell> {
         onDestinationSelected: (index) => setState(() => _currentIndex = index),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Feed'),
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
+          NavigationDestination(icon: Icon(Icons.calendar_month_outlined), label: 'Bookings'),
+          NavigationDestination(icon: Icon(Icons.people_outline), label: 'Community'),
+          NavigationDestination(icon: Icon(Icons.wallet_outlined), label: 'Wallet'),
           NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),

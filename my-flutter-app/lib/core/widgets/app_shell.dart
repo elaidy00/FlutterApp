@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../models/app_user.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../../features/home/home_feed_screen.dart';
-import '../../features/student/student_dashboard_screen.dart';
-import '../../features/instructor/instructor_dashboard_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -22,13 +19,11 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final isDark = ref.watch(themeModeProvider);
-    final role = authState.selectedRole ?? AppUserRole.student;
+    final role = authState.activeRole ?? 'Student';
 
     final pages = <Widget>[
       const HomeFeedScreen(),
-      role == AppUserRole.instructor
-          ? const InstructorDashboardScreen()
-          : const StudentDashboardScreen(),
+      Center(child: Text(role == 'Instructor' ? 'Instructor dashboard' : 'Student dashboard')),
     ];
 
     return Scaffold(
@@ -42,8 +37,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             onPressed: () {
-              ref.read(authProvider.notifier).signOut();
-              context.go('/');
+              ref.read(authProvider.notifier).logout();
+              context.go('/login');
             },
           ),
         ],

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/models/app_user.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/widgets/auth_card.dart';
 
@@ -10,6 +9,9 @@ class RoleSelectionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final roles = authState.assignableRoles;
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -19,25 +21,42 @@ class RoleSelectionScreen extends ConsumerWidget {
             subtitle: 'Select the experience that fits you best and continue.',
             child: Column(
               children: [
-                _RoleOptionCard(
-                  title: 'Student',
-                  subtitle: 'Discover courses, manage progress, and keep learning.',
-                  icon: Icons.school_outlined,
-                  onTap: () {
-                    ref.read(authProvider.notifier).selectRole(AppUserRole.student);
-                    context.go('/home');
-                  },
-                ),
-                const SizedBox(height: 12),
-                _RoleOptionCard(
-                  title: 'Instructor',
-                  subtitle: 'Create sessions, shape curriculum, and support learners.',
-                  icon: Icons.co_present_outlined,
-                  onTap: () {
-                    ref.read(authProvider.notifier).selectRole(AppUserRole.instructor);
-                    context.go('/home');
-                  },
-                ),
+                if (roles.contains('Student')) ...[
+                  _RoleOptionCard(
+                    title: 'Student',
+                    subtitle: 'Discover courses, manage progress, and keep learning.',
+                    icon: Icons.school_outlined,
+                    onTap: () async {
+                      await ref.read(authProvider.notifier).setActiveRole('Student');
+                      if (context.mounted) context.go('/home');
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (roles.contains('Instructor')) ...[
+                  _RoleOptionCard(
+                    title: 'Instructor',
+                    subtitle: 'Create sessions, shape curriculum, and support learners.',
+                    icon: Icons.co_present_outlined,
+                    onTap: () async {
+                      await ref.read(authProvider.notifier).setActiveRole('Instructor');
+                      if (context.mounted) context.go('/home');
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (roles.contains('Admin') || roles.contains('SuperAdmin')) ...[
+                  _RoleOptionCard(
+                    title: 'Admin',
+                    subtitle: 'Manage platform, users, subjects, and payments.',
+                    icon: Icons.admin_panel_settings_outlined,
+                    onTap: () async {
+                      final role = roles.contains('SuperAdmin') ? 'SuperAdmin' : 'Admin';
+                      await ref.read(authProvider.notifier).setActiveRole(role);
+                      if (context.mounted) context.go('/home');
+                    },
+                  ),
+                ],
               ],
             ),
           ),

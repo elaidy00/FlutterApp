@@ -79,7 +79,6 @@ class ApiClient {
 
   final Dio dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-
   String baseUrl = _resolveBaseUrl();
   bool _isRefreshing = false;
   final List<Map<String, dynamic>> _failedRequestsQueue =

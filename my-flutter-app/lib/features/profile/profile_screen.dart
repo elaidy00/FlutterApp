@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/providers/auth_provider.dart';
-import '../../core/services/api_client.dart';
+import '../../core/providers/profile_provider.dart';
+import '../../core/models/dtos/profile_dtos.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -11,91 +11,100 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  late final Future<Map<String, dynamic>> _profileFuture;
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    _profileFuture = _loadProfile();
+    Future.microtask(() => ref.read(profileProvider.notifier).fetchProfile());
   }
 
-  Future<Map<String, dynamic>> _loadProfile() async {
-    try {
-      final response = await ApiClient().dio.get('/profiles/users/1');
-      return ApiClient.extractResponseData(response.data);
-    } catch (_) {
-      return <String, dynamic>{};
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _updateProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final dto = UpdateProfileDto(
+      firstName: _firstNameController.text.trim(),
+      lastName: _lastNameController.text.trim(),
+      phoneNumber: _phoneController.text.trim(),
+    );
+
+    final success = await ref.read(profileProvider.notifier).updateProfile(dto);
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully!')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
+    final profileState = ref.watch(profileProvider);
+    final profile = profileState.profile;
 
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _profileFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    if (profile == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Profile')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(snapshot.error.toString()),
-            ),
-          );
-        }
+    // Initialize controllers if not already done
+    if (_firstNameController.text.isEmpty) {
+      _firstNameController.text = profile.firstName;
+      _lastNameController.text = profile.lastName;
+      _phoneController.text = profile.phoneNumber;
+    }
 
-        final profile = snapshot.data ?? <String, dynamic>{};
-        final fallbackName = authState.user?.name ?? 'Learner';
-        final displayName = '${profile['firstName'] ?? fallbackName.split(' ').first ?? ''} ${profile['lastName'] ?? fallbackName.split(' ').skip(1).join(' ') ?? ''}'.trim();
-        final email = profile['email']?.toString() ?? authState.user?.email ?? 'No email';
-        final rawRoles = (profile['roles'] as List<dynamic>?)?.map((role) => role.toString()).toList() ?? <String>[];
-        final roles = rawRoles.isNotEmpty ? rawRoles.join(', ') : authState.user?.role.name ?? 'Student';
-
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 32,
-                      child: Text(displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U'),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(displayName.isNotEmpty ? displayName : 'Learner', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Text(email, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                    const SizedBox(height: 8),
-                    Chip(label: Text(roles)),
-                  ],
-                ),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profile')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 50,
+                backgroundImage: profile.profileImage != null ? NetworkImage(profile.profileImage!) : null,
+                child: profile.profileImage == null ? const Icon(Icons.person, size: 50) : null,
               ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.lock_outline),
-              title: const Text('Password & security'),
-              subtitle: const Text('Manage account access and password changes'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.account_balance_wallet_outlined),
-              title: const Text('Wallet'),
-              subtitle: const Text('Review balance and transactions'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {},
-            ),
-          ],
-        );
-      },
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _firstNameController,
+                decoration: const InputDecoration(labelText: 'First Name', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _lastNameController,
+                decoration: const InputDecoration(labelText: 'Last Name', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(labelText: 'Phone Number', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: profileState.isLoading ? null : _updateProfile,
+                child: profileState.isLoading
+                    ? const CircularProgressIndicator()
+                    : const Text('Update Profile'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

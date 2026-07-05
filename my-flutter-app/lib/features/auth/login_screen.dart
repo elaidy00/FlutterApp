@@ -13,9 +13,10 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'alex.johnson@example.com');
-  final _passwordController = TextEditingController(text: 'P@ssw0rd123!');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscure = true;
+  bool _rememberMe = true;
 
   @override
   void dispose() {
@@ -28,16 +29,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      await ref.read(authProvider.notifier).login(
+      final success = await ref.read(authProvider.notifier).login(
             _emailController.text.trim(),
             _passwordController.text.trim(),
+            rememberMe: _rememberMe,
           );
       if (!mounted) return;
-      final state = ref.read(authProvider);
-      if (state.needsRoleSelection()) {
-        context.go('/roles');
-      } else {
-        context.go('/home');
+      if (success) {
+        final state = ref.read(authProvider);
+        if (state.needsRoleSelection()) {
+          context.go('/roles');
+        } else {
+          context.go('/home');
+        }
       }
     } catch (error) {
       if (!mounted) return;
@@ -45,6 +49,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         SnackBar(content: Text(error.toString())),
       );
     }
+  }
+
+  Future<void> _googleSignIn() async {
+    // In a real app, we would use google_sign_in package to get the idToken.
+    // For this implementation, we will show a dialog or call the provider if we have a token.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Google Sign-In initiated...')),
+    );
   }
 
   @override
@@ -89,7 +101,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _rememberMe,
+                        onChanged: (value) {
+                          setState(() {
+                            _rememberMe = value ?? true;
+                          });
+                        },
+                      ),
+                      const Text('Remember me'),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => context.push('/forget-password'),
+                        child: const Text('Forgot Password?'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -98,13 +129,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2))
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.login_outlined),
                       label:
                           Text(authState.isLoading ? 'Signing in…' : 'Sign in'),
                     ),
                   ),
                   const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: authState.isLoading ? null : _googleSignIn,
+                    icon: const Icon(Icons.g_mobiledata, size: 30),
+                    label: const Text('Sign in with Google'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   TextButton(
                     onPressed: () => context.push('/register'),
                     child: const Text('Create account'),

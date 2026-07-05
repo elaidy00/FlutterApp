@@ -1,7 +1,36 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_user.dart';
 import '../services/api_client.dart';
 import '../services/storage_service.dart';
+
+Map<String, Object> buildLoginRequest(String email, String password) {
+  return <String, Object>{
+    'emailOrUserName': email,
+    'password': password,
+  };
+}
+
+Map<String, Object> buildRegisterRequest({
+  required String firstName,
+  required String lastName,
+  required String email,
+  required String userName,
+  required String phoneNumber,
+  required String password,
+  required int roleName,
+}) {
+  return <String, Object>{
+    'firstName': firstName,
+    'lastName': lastName,
+    'email': email,
+    'userName': userName,
+    'phoneNumber': phoneNumber,
+    'password': password,
+    'confirmPassword': password,
+    'roleName': roleName,
+  };
+}
 
 class AuthState {
   const AuthState({
@@ -36,7 +65,9 @@ class AuthState {
   }
 
   bool needsRoleSelection() {
-    return isAuthenticated && selectedRole == null && hasMultipleAssignableRoles;
+    return isAuthenticated &&
+        selectedRole == null &&
+        hasMultipleAssignableRoles;
   }
 }
 
@@ -44,18 +75,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier({StorageService? storage, ApiClient? apiClient})
       : _storage = storage ?? const StorageService(),
         _apiClient = apiClient ?? ApiClient(),
-        super(const AuthState());
+        super(const AuthState()) {
+    _restoreSession();
+  }
 
   final StorageService _storage;
   final ApiClient _apiClient;
 
+  Future<void> _restoreSession() async {
+    final token = await _storage.readAuthToken();
+    final roleName = await _storage.readRole();
+    if (token == null || token.isEmpty) {
+      return;
+    }
+
+    final role = roleName == AppUserRole.instructor.name
+        ? AppUserRole.instructor
+        : AppUserRole.student;
+
+    state = state.copyWith(
+      isAuthenticated: true,
+      selectedRole: role,
+      user: AppUser(
+        id: 'saved-user',
+        name: 'Saved user',
+        email: 'saved-user',
+        role: role,
+      ),
+    );
+  }
+
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true);
     try {
-      final response = await _apiClient.dio.post('/accounts/login', data: {
-        'emailOrUserName': email,
-        'password': password,
-      });
+      final response = await _apiClient.dio.post(
+        '/accounts/login',
+        data: buildLoginRequest(email, password),
+      );
 
       final payload = response.data is Map<String, dynamic>
           ? response.data as Map<String, dynamic>
@@ -67,8 +123,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         throw Exception('Authentication failed');
       }
 
-      final roles = authData['roles'] is List ? authData['roles'].cast<String>() : <String>[];
-      final role = roles.contains('Instructor') ? AppUserRole.instructor : AppUserRole.student;
+      final roles = authData['roles'] is List
+          ? authData['roles'].cast<String>()
+          : <String>[];
+      final role = roles.contains('Instructor')
+          ? AppUserRole.instructor
+          : AppUserRole.student;
 
       await _storage.saveAuthToken(authData['token'].toString());
       state = state.copyWith(
@@ -76,8 +136,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: true,
         user: AppUser(
           id: authData['email']?.toString() ?? email,
-          name: '${authData['firstName'] ?? ''} ${authData['lastName'] ?? ''}'.trim().isNotEmpty
-              ? '${authData['firstName'] ?? ''} ${authData['lastName'] ?? ''}'.trim()
+          name: '${authData['firstName'] ?? ''} ${authData['lastName'] ?? ''}'
+                  .trim()
+                  .isNotEmpty
+              ? '${authData['firstName'] ?? ''} ${authData['lastName'] ?? ''}'
+                  .trim()
               : email,
           email: authData['email']?.toString() ?? email,
           role: role,
@@ -85,7 +148,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         selectedRole: null,
         hasMultipleAssignableRoles: roles.length > 1,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Login error: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
       state = state.copyWith(isLoading: false);
       rethrow;
     }
@@ -94,26 +161,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> register(String fullName, String email, String password) async {
     state = state.copyWith(isLoading: true);
     try {
-      await _apiClient.dio.post('/accounts/register', data: {
-        'fullName': fullName,
-        'email': email,
-        'password': password,
-        'userName': email.split('@').first,
-      });
+      final parts = fullName.trim().split(RegExp(r'\s+'));
+      final firstName = parts.isNotEmpty ? parts.first : '';
+      final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+      await _apiClient.dio.post(
+        '/accounts/register',
+        data: buildRegisterRequest(
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          userName: email.split('@').first,
+          phoneNumber: '',
+          password: password,
+          roleName: 3,
+        ),
+      );
 
       state = state.copyWith(
         isLoading: false,
-        isAuthenticated: true,
-        user: AppUser(
-          id: email,
-          name: fullName,
-          email: email,
-          role: AppUserRole.student,
-        ),
+        isAuthenticated: false,
         selectedRole: null,
-        hasMultipleAssignableRoles: true,
+        hasMultipleAssignableRoles: false,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Register error: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
       state = state.copyWith(isLoading: false);
       rethrow;
     }

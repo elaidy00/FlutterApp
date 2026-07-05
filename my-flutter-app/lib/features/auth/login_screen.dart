@@ -26,16 +26,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authProvider.notifier).login(
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
-    );
-    if (!mounted) return;
-    final state = ref.read(authProvider);
-    if (state.needsRoleSelection()) {
-      if (mounted) context.go('/roles');
-    } else {
-      if (mounted) context.go('/home');
+
+    try {
+      await ref.read(authProvider.notifier).login(
+            _emailController.text.trim(),
+            _passwordController.text.trim(),
+          );
+      if (!mounted) return;
+      final state = ref.read(authProvider);
+      if (state.needsRoleSelection()) {
+        context.go('/roles');
+      } else {
+        context.go('/home');
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
     }
   }
 
@@ -56,7 +64,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    validator: (value) => value == null || value.isEmpty ? 'Email is required' : null,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Email is required'
+                        : null,
                     decoration: const InputDecoration(
                       labelText: 'Email',
                       prefixIcon: Icon(Icons.email_outlined),
@@ -66,12 +76,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscure,
-                    validator: (value) => value == null || value.length < 6 ? 'Password must be at least 6 characters' : null,
+                    validator: (value) => value == null || value.length < 6
+                        ? 'Password must be at least 6 characters'
+                        : null,
                     decoration: InputDecoration(
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                        icon: Icon(
+                            _obscure ? Icons.visibility_off : Icons.visibility),
                         onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ),
@@ -82,9 +95,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: FilledButton.icon(
                       onPressed: authState.isLoading ? null : _submit,
                       icon: authState.isLoading
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.login_outlined),
-                      label: Text(authState.isLoading ? 'Signing in…' : 'Sign in'),
+                      label:
+                          Text(authState.isLoading ? 'Signing in…' : 'Sign in'),
                     ),
                   ),
                   const SizedBox(height: 12),

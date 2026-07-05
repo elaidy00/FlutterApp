@@ -53,10 +53,10 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
           crossAxisSpacing: 12,
           childAspectRatio: 2.2,
           physics: const NeverScrollableScrollPhysics(),
-          children: const [
-            InfoTile(icon: Icons.workspace_premium_outlined, title: 'Your progress', value: '82% complete'),
-            InfoTile(icon: Icons.calendar_month_outlined, title: 'Next session', value: 'Today · 18:30'),
-            InfoTile(icon: Icons.wallet_outlined, title: 'Wallet', value: '320 coins'),
+          children: [
+            const InfoTile(icon: Icons.workspace_premium_outlined, title: 'Your progress', value: 'Synced with your account'),
+            const InfoTile(icon: Icons.calendar_month_outlined, title: 'Dashboard', value: 'Live activity overview'),
+            InfoTile(icon: Icons.wallet_outlined, title: 'Role', value: roleLabel),
           ],
         ),
         const SizedBox(height: 20),

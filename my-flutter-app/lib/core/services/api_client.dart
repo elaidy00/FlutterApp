@@ -13,6 +13,29 @@ class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
 
+  static Map<String, dynamic> extractResponseData(dynamic responseData) {
+    if (responseData is Map<String, dynamic>) {
+      final data = responseData['data'];
+      if (data is Map<String, dynamic>) {
+        return data;
+      }
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+      return <String, dynamic>{};
+    }
+
+    if (responseData is Map) {
+      final data = responseData['data'];
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+      return <String, dynamic>{};
+    }
+
+    return <String, dynamic>{};
+  }
+
   void _debugPrintBody(String label, Object? value) {
     if (value == null) {
       debugPrint('$label: null');

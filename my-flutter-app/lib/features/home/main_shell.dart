@@ -6,6 +6,7 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/providers/theme_provider.dart';
 import 'home_feed_screen.dart';
 import '../instructor/instructor_dashboard_screen.dart';
+import '../profile/profile_screen.dart';
 import '../student/student_dashboard_screen.dart';
 
 class MainShell extends ConsumerStatefulWidget {
@@ -29,6 +30,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       currentRole == AppUserRole.instructor
           ? const InstructorDashboardScreen()
           : const StudentDashboardScreen(),
+      const ProfileScreen(),
     ];
 
     return Scaffold(
@@ -55,6 +57,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Feed'),
           NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
+          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );

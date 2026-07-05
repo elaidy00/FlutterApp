@@ -113,22 +113,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
         data: buildLoginRequest(email, password),
       );
 
-      final payload = response.data is Map<String, dynamic>
-          ? response.data as Map<String, dynamic>
-          : Map<String, dynamic>.from(response.data ?? {});
-      final data = payload['data'];
-      final authData = data is Map<String, dynamic> ? data : null;
+      final authData = ApiClient.extractResponseData(response.data);
 
-      if (authData == null || authData['token'] == null) {
+      if (authData['token'] == null) {
         throw Exception('Authentication failed');
       }
 
       final roles = authData['roles'] is List
-          ? authData['roles'].cast<String>()
+          ? authData['roles'].whereType<String>().toList()
           : <String>[];
-      final role = roles.contains('Instructor') || roles.contains('Instructor')
-          ? AppUserRole.instructor
-          : AppUserRole.student;
+      final normalizedRoles = roles.map((role) => role.toLowerCase()).toList();
+      final bool isInstructor = normalizedRoles.contains('instructor');
+      final role = isInstructor ? AppUserRole.instructor : AppUserRole.student;
 
       await _storage.saveAuthToken(authData['token'].toString());
       state = state.copyWith(

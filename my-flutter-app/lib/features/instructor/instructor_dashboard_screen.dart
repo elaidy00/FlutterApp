@@ -19,13 +19,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
 
   Future<Map<String, dynamic>> _loadDashboard() async {
     final response = await ApiClient().dio.get('/instructors/me/dashboard');
-    final payload = response.data is Map<String, dynamic>
-        ? response.data as Map<String, dynamic>
-        : Map<String, dynamic>.from(response.data ?? {});
-    final data = payload['data'];
-    return data is Map<String, dynamic>
-        ? data
-        : <String, dynamic>{};
+    return ApiClient.extractResponseData(response.data);
   }
 
   @override

@@ -95,7 +95,7 @@ class AuthProvider extends ChangeNotifier {
       final Response<dynamic> response = await _apiClient.dio.post(
         '/accounts/login',
         data: <String, String>{
-          'email': email,
+          'emailOrUserName': email,
           'password': password,
         },
       );

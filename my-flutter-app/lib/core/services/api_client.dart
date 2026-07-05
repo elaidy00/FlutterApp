@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -10,6 +11,47 @@ const String kApiBaseUrl = 'https://learnloopapi.runasp.net/api';
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
+
+  void _debugPrintBody(String label, Object? value) {
+    if (value == null) {
+      debugPrint('$label: null');
+      return;
+    }
+
+    if (value is String) {
+      debugPrint('$label: $value');
+      return;
+    }
+
+    try {
+      debugPrint('$label: ${jsonEncode(value)}');
+    } catch (_) {
+      debugPrint('$label: $value');
+    }
+  }
+
+  String _extractAspNetErrorMessage(dynamic responseData) {
+    if (responseData is Map) {
+      final message = responseData['message'];
+      if (message is String && message.isNotEmpty) {
+        return message;
+      }
+
+      final errors = responseData['errors'];
+      if (errors is Map) {
+        return errors.values
+            .expand((value) => value is List ? value : <dynamic>[value])
+            .whereType<String>()
+            .join(' | ');
+      }
+    }
+
+    if (responseData is String && responseData.isNotEmpty) {
+      return responseData;
+    }
+
+    return 'No ASP.NET Core error message provided.';
+  }
 
   final Dio dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -64,12 +106,28 @@ class ApiClient {
         },
         onError: (DioException error, ErrorInterceptorHandler handler) async {
           final RequestOptions requestOptions = error.requestOptions;
+          final String requestUrl =
+              '${requestOptions.baseUrl}${requestOptions.path}';
+
+          debugPrint('❌ Request URL: $requestUrl');
+          _debugPrintBody('❌ Request Body', requestOptions.data);
           debugPrint(
-              '❌ ${error.response?.statusCode} ${requestOptions.method.toUpperCase()} ${requestOptions.path}');
-          debugPrint('❌ Error: ${error.message}');
-          if (error.response?.data != null) {
-            debugPrint('❌ Response body: ${error.response?.data}');
+              '❌ Response Status: ${error.response?.statusCode ?? 'N/A'}');
+          _debugPrintBody('❌ Raw response body', error.response?.data);
+
+          final dynamic responseData = error.response?.data;
+          if (responseData is Map) {
+            final dynamic errors = responseData['errors'];
+            if (errors is Map) {
+              debugPrint('❌ ModelState validation errors: ${jsonEncode(errors)}');
+            } else if (errors != null) {
+              debugPrint('❌ ModelState validation errors: $errors');
+            }
           }
+
+          debugPrint(
+              '❌ ASP.NET Core error message: ${_extractAspNetErrorMessage(responseData)}');
+          debugPrint('❌ Dio error: ${error.message}');
 
           if (requestOptions.path.contains('/accounts/refresh-token')) {
             return handler.next(error);
